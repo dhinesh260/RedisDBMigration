@@ -6,10 +6,17 @@ import redis
 
 
 def connect_redis(conn_dict):
-    conn = redis.StrictRedis(host=conn_dict['host'],
-                             port=conn_dict['port'],
-                             db=conn_dict['db'])
-    return conn
+    conn = None
+    try:
+        conn = redis.StrictRedis(
+            host=conn_dict['host'],
+            port=conn_dict['port'],
+            db=conn_dict['db']
+        )
+    except Exception as e:
+        print("Redis connection failed", e)
+    finally:
+        return conn
 
 
 def conn_string_type(string):
@@ -25,9 +32,7 @@ def conn_string_type(string):
             'db': db}
 
 
-def migrate_redis(source, destination):
-    src = connect_redis(source)
-    dst = connect_redis(destination)
+def migrate_redis(src, dst):
     for key in src.keys('*'):
         ttl = src.ttl(key)
         if ttl < 0:
@@ -49,7 +54,16 @@ def run():
     parser.add_argument('source', type=conn_string_type)
     parser.add_argument('destination', type=conn_string_type)
     options = parser.parse_args()
-    migrate_redis(options.source, options.destination)
+    source_redis_conn = connect_redis(options.source)
+    destination_redis_conn = connect_redis(options.destination)
+
+    if source_redis_conn and destination_redis_conn:
+        migrate_redis(source_redis_conn, destination_redis_conn)
+    else:
+        if not source_redis_conn:
+            print('Source redis connection failed')
+        if not destination_redis_conn:
+            print('Destination redis connection failed')
 
 
 if __name__ == '__main__':
