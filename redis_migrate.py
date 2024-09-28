@@ -54,12 +54,16 @@ def run():
     parser.add_argument('source', type=conn_string_type)
     parser.add_argument('destination', type=conn_string_type)
     options = parser.parse_args()
+
+    # Establishing connection to redis
     source_redis_conn = connect_redis(options.source)
     destination_redis_conn = connect_redis(options.destination)
 
+    # Start migration process if both redis connections are working
     if source_redis_conn and destination_redis_conn:
         migrate_redis(source_redis_conn, destination_redis_conn)
     else:
+        print('Source or Destination or both redis connection fails. checking...')
         if not source_redis_conn:
             print('Source redis connection failed')
         if not destination_redis_conn:
